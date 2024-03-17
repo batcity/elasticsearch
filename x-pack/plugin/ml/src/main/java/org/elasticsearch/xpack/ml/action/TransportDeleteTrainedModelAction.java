@@ -9,6 +9,7 @@ package org.elasticsearch.xpack.ml.action;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchStatusException;
+import org.elasticsearch.xpack.core.ml.job.messages.Messages;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
@@ -40,6 +41,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.xpack.core.ClientHelper;
 import org.elasticsearch.xpack.core.ml.action.DeleteTrainedModelAction;
+import org.elasticsearch.xpack.core.ml.action.GetTrainedModelsAction;
+import org.elasticsearch.xpack.core.ml.inference.TrainedModelConfig;
 import org.elasticsearch.xpack.core.ml.action.StopTrainedModelDeploymentAction;
 import org.elasticsearch.xpack.core.ml.inference.ModelAliasMetadata;
 import org.elasticsearch.xpack.core.ml.inference.assignment.TrainedModelAssignmentMetadata;
@@ -56,6 +59,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.elasticsearch.core.Strings.format;
 import static org.elasticsearch.xpack.core.ClientHelper.ML_ORIGIN;
@@ -180,6 +184,20 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         IngestMetadata currentIngestMetadata = state.metadata().custom(IngestMetadata.TYPE);
         Set<String> referencedModels = getReferencedModelKeys(currentIngestMetadata, ingestService);
 
+        System.out.println("-------- Yo this is Gautham's block");
+        System.out.println("Bruh is this happening first?");
+        System.out.println("-----------------------------------");
+
+
+        boolean modelExists = checkIfModelExists(request.getId());
+        if(!modelExists) {
+             logger.info("confirmed that the model doesn't exist, will fail this block now");
+             listener.onFailure(
+                     new ResourceNotFoundException(Messages.getMessage(Messages.INFERENCE_NOT_FOUND, request.getId()))
+                 );
+                 return;
+        }
+
         if (request.isForce() == false && referencedModels.contains(id)) {
             listener.onFailure(
                 new ElasticsearchStatusException(
@@ -228,6 +246,33 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         }
     }
 
+    private boolean checkIfModelExists(String modelId) {
+        final AtomicBoolean modelDoesNotExist = new AtomicBoolean(false);
+
+        ActionListener<TrainedModelConfig> trainedModelListener = new ActionListener<>() {
+            @Override
+            public void onResponse(TrainedModelConfig config) {
+                logger.info("The model exists. Response: " + config.toString());
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                logger.info("The model does not exist.");
+                modelDoesNotExist.set(true);
+            }
+        };
+
+        trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), null, trainedModelListener);
+
+        if (modelDoesNotExist.get()) {
+            logger.info("Returning false because the model doesn't exist.");
+            return false;
+        }
+
+        return true;
+    }
+
+
     private void forceStopDeployment(String modelId, ActionListener<StopTrainedModelDeploymentAction.Response> listener) {
         StopTrainedModelDeploymentAction.Request request = new StopTrainedModelDeploymentAction.Request(modelId);
         request.setForce(true);
@@ -239,7 +284,7 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         List<String> modelAliases,
         ActionListener<AcknowledgedResponse> listener
     ) {
-        logger.debug(() -> "[" + request.getId() + "] Deleting model");
+        logger.info(() -> "[" + request.getId() + "] Deleting model");
 
         ActionListener<AcknowledgedResponse> nameDeletionListener = listener.delegateFailureAndWrap(
             (delegate, ack) -> trainedModelProvider.deleteTrainedModel(request.getId(), delegate.delegateFailureAndWrap((l, r) -> {
