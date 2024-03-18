@@ -876,14 +876,12 @@ public class TrainedModelProvider {
     }
 
     public void deleteTrainedModel(String modelId, ActionListener<Boolean> listener) {
-
         if (MODELS_STORED_AS_RESOURCE.contains(modelId)) {
             listener.onFailure(
                 ExceptionsHelper.badRequestException(Messages.getMessage(Messages.INFERENCE_CANNOT_DELETE_ML_MANAGED_MODEL, modelId))
             );
             return;
         }
-
         DeleteByQueryRequest request = new DeleteByQueryRequest().setAbortOnVersionConflict(false);
 
         request.indices(InferenceIndexConstants.INDEX_PATTERN, MlStatsIndex.indexPattern());

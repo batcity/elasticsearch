@@ -184,13 +184,12 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         IngestMetadata currentIngestMetadata = state.metadata().custom(IngestMetadata.TYPE);
         Set<String> referencedModels = getReferencedModelKeys(currentIngestMetadata, ingestService);
 
-        boolean modelExists = modelExists(request.getId());
-        if(!modelExists) {
+        if(!modelExists(request.getId())) {
              logger.info("confirmed that the model doesn't exist, will fail this block now");
              listener.onFailure(
                      new ResourceNotFoundException(Messages.getMessage(Messages.INFERENCE_NOT_FOUND, request.getId()))
                  );
-                 return;
+             return;
         }
 
         if (request.isForce() == false && referencedModels.contains(id)) {
