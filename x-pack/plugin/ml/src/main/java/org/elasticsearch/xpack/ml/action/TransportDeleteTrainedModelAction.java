@@ -273,7 +273,7 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         List<String> modelAliases,
         ActionListener<AcknowledgedResponse> listener
     ) {
-        logger.info(() -> "[" + request.getId() + "] Deleting model");
+        logger.debug(() -> "[" + request.getId() + "] Deleting model");
 
         ActionListener<AcknowledgedResponse> nameDeletionListener = listener.delegateFailureAndWrap(
             (delegate, ack) -> trainedModelProvider.deleteTrainedModel(request.getId(), delegate.delegateFailureAndWrap((l, r) -> {
