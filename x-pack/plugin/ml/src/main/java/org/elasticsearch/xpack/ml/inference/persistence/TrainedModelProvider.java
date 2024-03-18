@@ -877,10 +877,6 @@ public class TrainedModelProvider {
 
     public void deleteTrainedModel(String modelId, ActionListener<Boolean> listener) {
 
-        System.out.println("-------- Yo this is Gautham's block");
-        System.out.println("Imma try deleting a trained model here");
-        System.out.println("-----------------------------------");
-
         if (MODELS_STORED_AS_RESOURCE.contains(modelId)) {
             listener.onFailure(
                 ExceptionsHelper.badRequestException(Messages.getMessage(Messages.INFERENCE_CANNOT_DELETE_ML_MANAGED_MODEL, modelId))

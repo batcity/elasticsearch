@@ -184,12 +184,7 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         IngestMetadata currentIngestMetadata = state.metadata().custom(IngestMetadata.TYPE);
         Set<String> referencedModels = getReferencedModelKeys(currentIngestMetadata, ingestService);
 
-        System.out.println("-------- Yo this is Gautham's block");
-        System.out.println("Bruh is this happening first?");
-        System.out.println("-----------------------------------");
-
-
-        boolean modelExists = checkIfModelExists(request.getId());
+        boolean modelExists = modelExists(request.getId());
         if(!modelExists) {
              logger.info("confirmed that the model doesn't exist, will fail this block now");
              listener.onFailure(
@@ -246,30 +241,25 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         }
     }
 
-    private boolean checkIfModelExists(String modelId) {
-        final AtomicBoolean modelDoesNotExist = new AtomicBoolean(false);
+    private boolean modelExists(String modelId) {
+        final AtomicBoolean modelExists = new AtomicBoolean(false);
 
         ActionListener<TrainedModelConfig> trainedModelListener = new ActionListener<>() {
             @Override
             public void onResponse(TrainedModelConfig config) {
                 logger.info("The model exists. Response: " + config.toString());
+                modelExists.set(true);
             }
 
             @Override
             public void onFailure(Exception e) {
-                logger.info("The model does not exist.");
-                modelDoesNotExist.set(true);
+                logger.error("Failed to retrieve model {}: {}", modelId, e.getMessage(), e);
             }
         };
 
         trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), null, trainedModelListener);
 
-        if (modelDoesNotExist.get()) {
-            logger.info("Returning false because the model doesn't exist.");
-            return false;
-        }
-
-        return true;
+        return modelExists.get();
     }
 
 
