@@ -8,8 +8,8 @@ package org.elasticsearch.xpack.ml.action;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchStatusException;
-import org.elasticsearch.xpack.core.ml.job.messages.Messages;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
@@ -42,10 +42,11 @@ import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.xpack.core.ClientHelper;
 import org.elasticsearch.xpack.core.ml.action.DeleteTrainedModelAction;
 import org.elasticsearch.xpack.core.ml.action.GetTrainedModelsAction;
-import org.elasticsearch.xpack.core.ml.inference.TrainedModelConfig;
 import org.elasticsearch.xpack.core.ml.action.StopTrainedModelDeploymentAction;
 import org.elasticsearch.xpack.core.ml.inference.ModelAliasMetadata;
+import org.elasticsearch.xpack.core.ml.inference.TrainedModelConfig;
 import org.elasticsearch.xpack.core.ml.inference.assignment.TrainedModelAssignmentMetadata;
+import org.elasticsearch.xpack.core.ml.job.messages.Messages;
 import org.elasticsearch.xpack.core.ml.utils.ExceptionsHelper;
 import org.elasticsearch.xpack.ml.inference.ingest.InferenceProcessor;
 import org.elasticsearch.xpack.ml.inference.persistence.TrainedModelProvider;
@@ -59,6 +60,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.elasticsearch.core.Strings.format;
@@ -184,12 +186,10 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         IngestMetadata currentIngestMetadata = state.metadata().custom(IngestMetadata.TYPE);
         Set<String> referencedModels = getReferencedModelKeys(currentIngestMetadata, ingestService);
 
-        if(!modelExists(request.getId())) {
-             logger.info("confirmed that the model doesn't exist, will fail this block now");
-             listener.onFailure(
-                     new ResourceNotFoundException(Messages.getMessage(Messages.INFERENCE_NOT_FOUND, request.getId()))
-                 );
-             return;
+        if (!modelExists(request.getId())) {
+            logger.info("confirmed that the model doesn't exist, will fail this block now");
+            listener.onFailure(new ResourceNotFoundException(Messages.getMessage(Messages.INFERENCE_NOT_FOUND, request.getId())));
+            return;
         }
 
         if (request.isForce() == false && referencedModels.contains(id)) {
@@ -241,6 +241,7 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
     }
 
     private boolean modelExists(String modelId) {
+        CountDownLatch latch = new CountDownLatch(1);
         final AtomicBoolean modelExists = new AtomicBoolean(false);
 
         ActionListener<TrainedModelConfig> trainedModelListener = new ActionListener<>() {
@@ -248,19 +249,26 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
             public void onResponse(TrainedModelConfig config) {
                 logger.info("The model exists. Response: " + config.toString());
                 modelExists.set(true);
+                latch.countDown();
             }
 
             @Override
             public void onFailure(Exception e) {
                 logger.error("Failed to retrieve model {}: {}", modelId, e.getMessage(), e);
+                latch.countDown();
             }
         };
 
         trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), null, trainedModelListener);
 
+        try {
+            latch.await();
+        } catch (InterruptedException e) {
+            throw new ElasticsearchException("unexpected exception", e);
+        }
+
         return modelExists.get();
     }
-
 
     private void forceStopDeployment(String modelId, ActionListener<StopTrainedModelDeploymentAction.Response> listener) {
         StopTrainedModelDeploymentAction.Request request = new StopTrainedModelDeploymentAction.Request(modelId);
