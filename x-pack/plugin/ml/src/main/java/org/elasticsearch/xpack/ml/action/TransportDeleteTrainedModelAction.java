@@ -61,6 +61,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.elasticsearch.core.Strings.format;
@@ -262,9 +263,13 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), null, trainedModelListener);
 
         try {
-            latch.await();
+            boolean latchReached = latch.await(5, TimeUnit.SECONDS);
+
+            if (latchReached == false) {
+                throw new ElasticsearchException("Timeout while waiting for trained model to be retrieved");
+            }
         } catch (InterruptedException e) {
-            throw new ElasticsearchException("unexpected exception", e);
+            throw new ElasticsearchException("Unexpected exception", e);
         }
 
         return modelExists.get();
