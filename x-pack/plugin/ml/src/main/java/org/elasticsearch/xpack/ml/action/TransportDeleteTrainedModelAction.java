@@ -182,7 +182,11 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         return modelAliases;
     }
 
-    private void deleteModel(DeleteTrainedModelAction.Request request, ClusterState state, ActionListener<AcknowledgedResponse> listener) {
+    protected void deleteModel(
+        DeleteTrainedModelAction.Request request,
+        ClusterState state,
+        ActionListener<AcknowledgedResponse> listener
+    ) {
         String id = request.getId();
         IngestMetadata currentIngestMetadata = state.metadata().custom(IngestMetadata.TYPE);
         Set<String> referencedModels = getReferencedModelKeys(currentIngestMetadata, ingestService);
