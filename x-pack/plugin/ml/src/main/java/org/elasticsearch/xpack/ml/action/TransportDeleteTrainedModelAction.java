@@ -192,7 +192,6 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         Set<String> referencedModels = getReferencedModelKeys(currentIngestMetadata, ingestService);
 
         if (modelExists(request.getId()) == false) {
-            logger.info("confirmed that the model doesn't exist, will fail this block now");
             listener.onFailure(new ResourceNotFoundException(Messages.getMessage(Messages.INFERENCE_NOT_FOUND, request.getId())));
             return;
         }
@@ -252,7 +251,6 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         ActionListener<TrainedModelConfig> trainedModelListener = new ActionListener<>() {
             @Override
             public void onResponse(TrainedModelConfig config) {
-                logger.info("The model exists. Response: " + config.toString());
                 modelExists.set(true);
                 latch.countDown();
             }
