@@ -10,8 +10,8 @@ package org.elasticsearch.xpack.ml.action;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.cancel.CancelTasksRequestBuilder;
+import org.elasticsearch.action.admin.cluster.node.tasks.cancel.TransportCancelTasksAction;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.TransportListTasksAction;
 import org.elasticsearch.action.support.ActionFilters;
@@ -97,7 +97,7 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
             listener.onFailure(new Exception("cancel error"));
 
             return Void.TYPE;
-        }).when(client).execute(same(CancelTasksAction.INSTANCE), any(), any());
+        }).when(client).execute(same(TransportCancelTasksAction.TYPE), any(), any());
 
         var listener = new PlainActionFuture<ListTasksResponse>();
 
@@ -118,7 +118,7 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
             listener.onFailure(new ResourceNotFoundException("task no longer there"));
 
             return Void.TYPE;
-        }).when(client).execute(same(CancelTasksAction.INSTANCE), any(), any());
+        }).when(client).execute(same(TransportCancelTasksAction.TYPE), any(), any());
 
         var listener = new PlainActionFuture<ListTasksResponse>();
 
@@ -244,7 +244,7 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
             listener.onResponse(response);
 
             return Void.TYPE;
-        }).when(client).execute(same(CancelTasksAction.INSTANCE), any(), any());
+        }).when(client).execute(same(TransportCancelTasksAction.TYPE), any(), any());
     }
 
     private TransportDeleteTrainedModelAction createTransportDeleteTrainedModelAction(TrainedModelProvider configProvider) {
