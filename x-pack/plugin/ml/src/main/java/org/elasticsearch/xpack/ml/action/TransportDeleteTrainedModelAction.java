@@ -199,7 +199,19 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         ActionListener<AcknowledgedResponse> listener
     ) {
 
+        logger.info("---------------------------------------");
+        logger.info("yo I'm traversing the onDeleteModelExists method");
+        logger.info("---------------------------------------");
+
+        logger.info("referenced models are: ");
+        referencedModels.forEach(logger::info);
+
         if (request.isForce() == false && referencedModels.contains(id)) {
+
+            logger.info("---------------------------------------");
+            logger.info("yo this should happen coz the elser model's def being referenced");
+            logger.info("---------------------------------------");
+
             listener.onFailure(
                 new ElasticsearchStatusException(
                     "Cannot delete model [{}] as it is still referenced by ingest processors; use force to delete the model",
@@ -248,6 +260,11 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
     }
 
     private void modelExists(String modelId, ActionListener<Boolean> listener) {
+
+        logger.info("---------------------------------------");
+        logger.info("yo I'm traversing the modelExist method");
+        logger.info("---------------------------------------");
+
         trainedModelProvider.getTrainedModel(
             modelId,
             GetTrainedModelsAction.Includes.empty(),
