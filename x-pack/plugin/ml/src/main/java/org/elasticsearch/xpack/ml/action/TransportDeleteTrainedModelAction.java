@@ -224,7 +224,7 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
     }
 
     protected void modelExists(String modelId, ActionListener<Boolean> listener) {
-        trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), null,
+        trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), taskInfo.taskId(),
             ActionListener.wrap(
                 model -> listener.onResponse(Boolean.TRUE),
                 exception -> {
