@@ -33,6 +33,7 @@ import org.elasticsearch.ingest.IngestService;
 import org.elasticsearch.injection.guice.Inject;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.tasks.Task;
+import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.tasks.TaskInfo;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -56,9 +57,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.elasticsearch.core.Strings.format;
 import static org.elasticsearch.xpack.core.ClientHelper.ML_ORIGIN;
@@ -119,7 +117,7 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         cancelDownloadTask(
             client,
             id,
-            listener.delegateFailureAndWrap((l, ignored) -> deleteModel(request, state, l)),
+            listener.delegateFailureAndWrap((l, ignored) -> deleteModel(request, state, task.getParentTaskId(), l)),
             request.ackTimeout()
         );
     }
@@ -160,13 +158,15 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
     protected void deleteModel(
         DeleteTrainedModelAction.Request request,
         ClusterState state,
+        TaskId taskId,
         ActionListener<AcknowledgedResponse> listener
     ) {
         String id = request.getId();
+
         IngestMetadata currentIngestMetadata = state.metadata().getProject().custom(IngestMetadata.TYPE);
         Set<String> referencedModels = InferenceProcessorInfoExtractor.getModelIdsFromInferenceProcessors(currentIngestMetadata);
 
-        SubscribableListener.<Boolean>newForked(modelExistsListener -> modelExists(id, modelExistsListener))
+        SubscribableListener.<Boolean>newForked(modelExistsListener -> modelExists(id, taskId, modelExistsListener))
             .andThenAccept(exists -> {
                 if (exists == false) {
                     listener.onFailure(new ResourceNotFoundException(Messages.getMessage(Messages.INFERENCE_NOT_FOUND, request.getId())));
@@ -223,8 +223,8 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
             .addListener(ActionListener.wrap(v -> { /* Listener already handled in the chain */ }, listener::onFailure));
     }
 
-    protected void modelExists(String modelId, ActionListener<Boolean> listener) {
-        trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), taskInfo.taskId(),
+    protected void modelExists(String modelId, TaskId taskId, ActionListener<Boolean> listener) {
+        trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), taskId,
             ActionListener.wrap(
                 model -> listener.onResponse(Boolean.TRUE),
                 exception -> {
