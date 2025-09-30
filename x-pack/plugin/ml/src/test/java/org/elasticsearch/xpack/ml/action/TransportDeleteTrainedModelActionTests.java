@@ -220,7 +220,7 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
         Throwable cause = executionException.getCause();
 
         assertThat(cause, instanceOf(ResourceNotFoundException.class));
-        assertThat(cause.getMessage(), containsString("not found"));
+        assertThat(cause.getMessage(), containsString("Could not find trained model"));
     }
 
 
