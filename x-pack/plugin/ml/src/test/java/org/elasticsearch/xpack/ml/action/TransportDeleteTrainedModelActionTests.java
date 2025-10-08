@@ -38,12 +38,10 @@ import org.elasticsearch.xpack.ml.inference.persistence.TrainedModelProvider;
 import org.elasticsearch.xpack.ml.notifications.InferenceAuditor;
 import org.junit.After;
 import org.junit.Before;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import java.util.Collections;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.elasticsearch.xpack.ml.action.TransportDeleteTrainedModelAction.cancelDownloadTask;
 import static org.elasticsearch.xpack.ml.utils.TaskRetrieverTests.getTaskInfoListOfOne;
@@ -56,9 +54,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class TransportDeleteTrainedModelActionTests extends ESTestCase {
@@ -158,7 +154,7 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
         assertThat(listener.actionGet(TIMEOUT), is(cancelResponse));
     }
 
-   public void testModelExistsIsTrueWhenModelIsFound() throws Exception {
+    public void testModelExistsIsTrueWhenModelIsFound() throws Exception {
         TrainedModelProvider trainedModelProvider = mock(TrainedModelProvider.class);
         TrainedModelConfig expectedConfig = buildTrainedModelConfig("modelId");
 
@@ -220,7 +216,6 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
         assertThat(cause.getMessage(), containsString("Could not find trained model"));
     }
 
-
     private static void mockCancelTask(Client client) {
         var cluster = client.admin().cluster();
         when(cluster.prepareCancelTasks()).thenReturn(new CancelTasksRequestBuilder(client));
@@ -257,7 +252,6 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
             mock(org.elasticsearch.cluster.project.ProjectResolver.class)
         );
     }
-
 
     private static TrainedModelConfig buildTrainedModelConfig(String modelId) {
         return TrainedModelConfig.builder()

@@ -13,6 +13,7 @@ import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
 import org.elasticsearch.action.support.ActionFilters;
+import org.elasticsearch.action.support.SubscribableListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.AcknowledgedTransportMasterNodeAction;
 import org.elasticsearch.client.internal.Client;
@@ -59,7 +60,6 @@ import java.util.Set;
 import static org.elasticsearch.core.Strings.format;
 import static org.elasticsearch.xpack.core.ClientHelper.ML_ORIGIN;
 import static org.elasticsearch.xpack.ml.utils.TaskRetriever.getDownloadTaskInfo;
-import org.elasticsearch.action.support.SubscribableListener;
 
 /**
  * The action is a master node action to ensure it reads an up-to-date cluster
@@ -221,17 +221,17 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
     }
 
     protected void modelExists(String modelId, TaskId taskId, ActionListener<Boolean> listener) {
-        trainedModelProvider.getTrainedModel(modelId, GetTrainedModelsAction.Includes.empty(), taskId,
-            ActionListener.wrap(
-                model -> listener.onResponse(Boolean.TRUE),
-                exception -> {
-                    if (ExceptionsHelper.unwrapCause(exception) instanceof ResourceNotFoundException) {
-                        listener.onResponse(Boolean.FALSE);
-                    } else {
-                        listener.onFailure(exception);
-                    }
+        trainedModelProvider.getTrainedModel(
+            modelId,
+            GetTrainedModelsAction.Includes.empty(),
+            taskId,
+            ActionListener.wrap(model -> listener.onResponse(Boolean.TRUE), exception -> {
+                if (ExceptionsHelper.unwrapCause(exception) instanceof ResourceNotFoundException) {
+                    listener.onResponse(Boolean.FALSE);
+                } else {
+                    listener.onFailure(exception);
                 }
-            )
+            })
         );
     }
 
