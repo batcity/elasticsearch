@@ -13,7 +13,6 @@ import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.cluster.node.tasks.list.ListTasksResponse;
 import org.elasticsearch.action.support.ActionFilters;
-import org.elasticsearch.action.support.SubscribableListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.AcknowledgedTransportMasterNodeAction;
 import org.elasticsearch.client.internal.Client;
@@ -115,7 +114,9 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         cancelDownloadTask(
             client,
             id,
-            listener.delegateFailureAndWrap((l, ignored) -> deleteModel(request, state, new TaskId(clusterService.localNode().getId(), task.getId()), l)),
+            listener.delegateFailureAndWrap(
+                (l, ignored) -> deleteModel(request, state, new TaskId(clusterService.localNode().getId(), task.getId()), l)
+            ),
             request.ackTimeout()
         );
     }
@@ -164,11 +165,11 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         Set<String> referencedModels = InferenceProcessorInfoExtractor.getModelIdsFromInferenceProcessors(currentIngestMetadata);
 
         modelExists(id, taskId, listener.delegateFailureAndWrap((l, exists) -> {
-            if (exists == false) {
+            if (!exists) {
                 l.onFailure(new ResourceNotFoundException(Messages.getMessage(Messages.INFERENCE_NOT_FOUND, id)));
                 return;
             }
-            
+
             deleteExistingModel(request, state, id, referencedModels, l);
         }));
     }
@@ -182,9 +183,13 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
     ) {
 
         if (request.isForce() == false && referencedModels.contains(id)) {
-            listener.onFailure(new ElasticsearchStatusException(
-                "Cannot delete model [{}] as it is still referenced by ingest processors; use force to delete the model",
-                RestStatus.CONFLICT, id));
+            listener.onFailure(
+                new ElasticsearchStatusException(
+                    "Cannot delete model [{}] as it is still referenced by ingest processors; use force to delete the model",
+                    RestStatus.CONFLICT,
+                    id
+                )
+            );
             return;
         }
 
@@ -192,22 +197,32 @@ public class TransportDeleteTrainedModelAction extends AcknowledgedTransportMast
         if (request.isForce() == false) {
             Optional<String> referencedModelAlias = modelAliases.stream().filter(referencedModels::contains).findFirst();
             if (referencedModelAlias.isPresent()) {
-                listener.onFailure(new ElasticsearchStatusException(
-                    "Cannot delete model [{}] as it has a model_alias [{}] that is still referenced by ingest processors; use force to delete the model",
-                    RestStatus.CONFLICT, id, referencedModelAlias.get()));
+                listener.onFailure(
+                    new ElasticsearchStatusException(
+                        "Cannot delete model [{}] as it has a model_alias [{}] that is still referenced by ingest processors; use force to delete the model",
+                        RestStatus.CONFLICT,
+                        id,
+                        referencedModelAlias.get()
+                    )
+                );
                 return;
             }
         }
 
         if (TrainedModelAssignmentMetadata.fromState(state).modelIsDeployed(id)) {
             if (request.isForce()) {
-                forceStopDeployment(id, listener.delegateFailureAndWrap(
-                    (delegate, stopResp) -> deleteAliasesAndModel(request, modelAliases, delegate))
+                forceStopDeployment(
+                    id,
+                    listener.delegateFailureAndWrap((delegate, stopResp) -> deleteAliasesAndModel(request, modelAliases, delegate))
                 );
             } else {
-                listener.onFailure(new ElasticsearchStatusException(
-                    "Cannot delete model [{}] as it is currently deployed; use force to delete the model",
-                    RestStatus.CONFLICT, id));
+                listener.onFailure(
+                    new ElasticsearchStatusException(
+                        "Cannot delete model [{}] as it is currently deployed; use force to delete the model",
+                        RestStatus.CONFLICT,
+                        id
+                    )
+                );
             }
         } else {
             deleteAliasesAndModel(request, modelAliases, listener);

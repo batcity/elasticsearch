@@ -209,8 +209,10 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
 
         action.deleteModel(new DeleteTrainedModelAction.Request("modelId"), clusterState, null, future);
 
-        ExecutionException executionException = expectThrows(ExecutionException.class, 
-        () -> future.get(TIMEOUT.millis(), TimeUnit.MILLISECONDS));
+        ExecutionException executionException = expectThrows(
+            ExecutionException.class,
+            () -> future.get(TIMEOUT.millis(), TimeUnit.MILLISECONDS)
+        );
         Throwable cause = executionException.getCause();
 
         assertThat(cause, instanceOf(ResourceNotFoundException.class));
@@ -255,23 +257,15 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
             return null;
         }).when(trainedModelProvider).deleteTrainedModel(any(), any());
 
-        TransportDeleteTrainedModelAction action =
-            createTransportDeleteTrainedModelAction(trainedModelProvider);
+        TransportDeleteTrainedModelAction action = createTransportDeleteTrainedModelAction(trainedModelProvider);
 
-        ClusterState clusterState =
-            ClusterState.builder(new ClusterName("test")).build();
+        ClusterState clusterState = ClusterState.builder(new ClusterName("test")).build();
 
         PlainActionFuture<AcknowledgedResponse> future = new PlainActionFuture<>();
 
-        action.deleteModel(
-            new DeleteTrainedModelAction.Request("modelId"),
-            clusterState,
-            null,
-            future
-        );
+        action.deleteModel(new DeleteTrainedModelAction.Request("modelId"), clusterState, null, future);
 
-        AcknowledgedResponse response =
-            future.get(TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+        AcknowledgedResponse response = future.get(TIMEOUT.millis(), TimeUnit.MILLISECONDS);
 
         assertTrue(response.isAcknowledged());
     }
