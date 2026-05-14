@@ -230,7 +230,6 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
         }).when(trainedModelProvider).getTrainedModel(any(), any(), any(), any());
 
         TransportDeleteTrainedModelAction action = createTransportDeleteTrainedModelAction(trainedModelProvider);
-
         PlainActionFuture<Boolean> future = new PlainActionFuture<>();
         action.modelExists("modelId", null, future);
 
@@ -258,11 +257,8 @@ public class TransportDeleteTrainedModelActionTests extends ESTestCase {
         }).when(trainedModelProvider).deleteTrainedModel(any(), any());
 
         TransportDeleteTrainedModelAction action = createTransportDeleteTrainedModelAction(trainedModelProvider);
-
         ClusterState clusterState = ClusterState.builder(new ClusterName("test")).build();
-
         PlainActionFuture<AcknowledgedResponse> future = new PlainActionFuture<>();
-
         action.deleteModel(new DeleteTrainedModelAction.Request("modelId"), clusterState, null, future);
 
         AcknowledgedResponse response = future.get(TIMEOUT.millis(), TimeUnit.MILLISECONDS);
